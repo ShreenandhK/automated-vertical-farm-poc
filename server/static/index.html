@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP Plant Monitor — Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- ─── Status Banner ─────────────────────────────
+         Green = all clear.  Red = disease detected.
+         JS toggles the CSS class when a result arrives. -->
+    <header id="status-banner" class="banner banner--healthy">
+        <div class="banner__inner">
+            <span id="status-icon" class="banner__icon">&#9679;</span>
+            <h1 id="status-text" class="banner__text">System Healthy</h1>
+            <span id="ws-indicator" class="ws-badge ws-badge--disconnected"
+                  title="WebSocket connection status">WS: Disconnected</span>
+        </div>
+    </header>
+
+    <main class="dashboard">
+
+        <!-- ════════════════════════════════════════════
+             LEFT COLUMN — Latest Analysis
+             ════════════════════════════════════════════
+
+             ID contract between this HTML and app.js:
+             ───────────────────────────────────────────
+               HTML id               JS variable
+               ────────────────────  ──────────────────
+               latest-image          dom.latestImage
+               image-placeholder     dom.placeholder
+               analysis-status       dom.analysisStatus
+               analysis-confidence   dom.analysisConf
+               analysis-source       dom.analysisSource
+             ───────────────────────────────────────────
+        -->
+        <section class="panel panel--image">
+            <h2 class="panel__title">Latest Analysis</h2>
+
+            <div class="image-frame">
+                <img id="latest-image"
+                     src=""
+                     alt="Awaiting first image…"
+                     class="image-frame__img">
+                <p id="image-placeholder" class="image-frame__placeholder">
+                    No image received yet
+                </p>
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-card">
+                    <span class="meta-card__label">Status</span>
+                    <span id="analysis-status" class="meta-card__value">—</span>
+                </div>
+                <div class="meta-card">
+                    <span class="meta-card__label">Confidence</span>
+                    <span id="analysis-confidence" class="meta-card__value">—</span>
+                </div>
+                <div class="meta-card">
+                    <span class="meta-card__label">Source</span>
+                    <span id="analysis-source" class="meta-card__value">—</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════
+             CENTRE COLUMN — Soil Moisture Gauge
+             ════════════════════════════════════════════ -->
+        <section class="panel panel--moisture">
+            <h2 class="panel__title">Soil Moisture</h2>
+
+            <div class="gauge">
+                <div class="gauge__track">
+                    <div id="gauge-fill" class="gauge__fill" style="height: 0%"></div>
+                </div>
+                <span id="gauge-value" class="gauge__value">—%</span>
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-card">
+                    <span class="meta-card__label">Watering</span>
+                    <span id="water-status" class="meta-card__value">—</span>
+                </div>
+                <div class="meta-card">
+                    <span class="meta-card__label">Last Reading</span>
+                    <span id="moisture-time" class="meta-card__value">—</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════
+             RIGHT COLUMN — Live Alert Feed
+             ════════════════════════════════════════════ -->
+        <section class="panel panel--alerts">
+            <h2 class="panel__title">
+                Live Alert Feed
+                <span id="alert-count" class="badge">0</span>
+            </h2>
+
+            <ul id="alert-feed" class="alert-feed">
+                <li class="alert-feed__empty">Waiting for data…</li>
+            </ul>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>SIP Plant Health Monitor — Proof of Concept</p>
+    </footer>
+
+    <!-- v=4 cache-buster — increment this every time app.js changes
+         so the browser fetches the new version instead of serving stale cache -->
+    <script src="/static/app.js?v=4"></script>
+</body>
+</html>

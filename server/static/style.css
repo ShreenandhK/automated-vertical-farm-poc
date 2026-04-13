@@ -1,0 +1,384 @@
+/*
+ * style.css — SIP Plant Monitor Dashboard
+ *
+ * Design principles:
+ *   • Color-coded system state: green = healthy, red/orange = alert.
+ *   • Responsive 3-column grid that collapses to 1 column on mobile.
+ *   • Dark background so thumbnail images are easier to read at a glance.
+ *   • No frameworks — plain CSS custom properties for theming
+ *     (CLAUDE.md §3 Frontend: Vanilla CSS only).
+ */
+
+/* ──────────────────────────────────────────────
+   CSS Custom Properties (theme tokens)
+   ────────────────────────────────────────────── */
+:root {
+    /* Palette */
+    --clr-bg:            #0f1117;
+    --clr-surface:       #1a1d27;
+    --clr-surface-alt:   #232733;
+    --clr-border:        #2e3345;
+    --clr-text:          #e2e4ea;
+    --clr-text-muted:    #8b90a0;
+
+    /* Semantic colours */
+    --clr-healthy:       #22c55e;
+    --clr-healthy-dim:   rgba(34, 197, 94, 0.15);
+    --clr-alert:         #ef4444;
+    --clr-alert-dim:     rgba(239, 68, 68, 0.15);
+    --clr-warning:       #f59e0b;
+    --clr-info:          #3b82f6;
+
+    /* Gauge */
+    --clr-gauge-track:   #2e3345;
+    --clr-gauge-low:     #ef4444;
+    --clr-gauge-mid:     #22c55e;
+    --clr-gauge-high:    #3b82f6;
+
+    /* Layout */
+    --radius:            8px;
+    --gap:               1.25rem;
+}
+
+
+/* ──────────────────────────────────────────────
+   Reset & base
+   ────────────────────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--clr-bg);
+    color: var(--clr-text);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ──────────────────────────────────────────────
+   Status Banner
+   ────────────────────────────────────────────── */
+.banner {
+    padding: 0.75rem 1.5rem;
+    transition: background-color 0.4s ease;
+}
+
+.banner--healthy {
+    background: var(--clr-healthy-dim);
+    border-bottom: 2px solid var(--clr-healthy);
+}
+
+.banner--alert {
+    background: var(--clr-alert-dim);
+    border-bottom: 2px solid var(--clr-alert);
+}
+
+.banner__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.banner__icon {
+    font-size: 1.25rem;
+    transition: color 0.4s ease;
+}
+
+.banner--healthy .banner__icon { color: var(--clr-healthy); }
+.banner--alert   .banner__icon { color: var(--clr-alert); }
+
+.banner__text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    flex: 1;
+}
+
+/* WebSocket connection badge */
+.ws-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+}
+
+.ws-badge--connected {
+    background: var(--clr-healthy-dim);
+    color: var(--clr-healthy);
+}
+
+.ws-badge--disconnected {
+    background: var(--clr-alert-dim);
+    color: var(--clr-alert);
+}
+
+
+/* ──────────────────────────────────────────────
+   Dashboard grid
+   ────────────────────────────────────────────── */
+.dashboard {
+    flex: 1;
+    max-width: 1400px;
+    width: 100%;
+    margin: var(--gap) auto;
+    padding: 0 var(--gap);
+    display: grid;
+    grid-template-columns: 1fr 280px 1fr;
+    gap: var(--gap);
+    align-items: start;
+}
+
+/* Stack vertically on smaller screens */
+@media (max-width: 900px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ──────────────────────────────────────────────
+   Panel (shared card style)
+   ────────────────────────────────────────────── */
+.panel {
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+}
+
+.panel__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--clr-text-muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+
+/* ──────────────────────────────────────────────
+   Image panel
+   ────────────────────────────────────────────── */
+.image-frame {
+    position: relative;
+    background: var(--clr-surface-alt);
+    border-radius: var(--radius);
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.image-frame__img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: none;  /* Hidden until first image arrives */
+}
+
+.image-frame__img.visible {
+    display: block;
+}
+
+.image-frame__placeholder {
+    color: var(--clr-text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 1rem;
+}
+
+.image-frame__placeholder.hidden {
+    display: none;
+}
+
+/* Metadata cards below the image / gauge */
+.meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+}
+
+.meta-card {
+    background: var(--clr-surface-alt);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.75rem;
+    text-align: center;
+}
+
+.meta-card__label {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--clr-text-muted);
+    margin-bottom: 0.2rem;
+}
+
+.meta-card__value {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    word-break: break-word;
+}
+
+/* Colour the label value based on disease state */
+.meta-card__value--healthy { color: var(--clr-healthy); }
+.meta-card__value--alert   { color: var(--clr-alert); }
+
+
+/* ──────────────────────────────────────────────
+   Moisture gauge
+   ────────────────────────────────────────────── */
+.gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.gauge__track {
+    width: 60px;
+    height: 200px;
+    background: var(--clr-gauge-track);
+    border-radius: var(--radius);
+    position: relative;
+    overflow: hidden;
+}
+
+.gauge__fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--clr-gauge-mid);
+    border-radius: 0 0 var(--radius) var(--radius);
+    transition: height 0.6s ease, background-color 0.4s ease;
+}
+
+/* Colour shifts based on data attributes set by JS */
+.gauge__fill[data-level="low"]  { background: var(--clr-gauge-low); }
+.gauge__fill[data-level="mid"]  { background: var(--clr-gauge-mid); }
+.gauge__fill[data-level="high"] { background: var(--clr-gauge-high); }
+
+.gauge__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+
+/* ──────────────────────────────────────────────
+   Alert feed
+   ────────────────────────────────────────────── */
+.badge {
+    background: var(--clr-surface-alt);
+    color: var(--clr-text-muted);
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+}
+
+.alert-feed {
+    list-style: none;
+    max-height: 500px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.alert-feed__empty {
+    color: var(--clr-text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.alert-item {
+    background: var(--clr-surface-alt);
+    border-left: 3px solid var(--clr-text-muted);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    animation: slide-in 0.3s ease;
+}
+
+.alert-item--healthy {
+    border-left-color: var(--clr-healthy);
+}
+
+.alert-item--disease {
+    border-left-color: var(--clr-alert);
+    background: var(--clr-alert-dim);
+}
+
+.alert-item--moisture {
+    border-left-color: var(--clr-info);
+}
+
+.alert-item__time {
+    color: var(--clr-text-muted);
+    font-size: 0.7rem;
+    margin-bottom: 0.15rem;
+}
+
+.alert-item__body {
+    font-weight: 500;
+}
+
+.alert-item__detail {
+    color: var(--clr-text-muted);
+    font-size: 0.7rem;
+    margin-top: 0.15rem;
+}
+
+@keyframes slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* ──────────────────────────────────────────────
+   Footer
+   ────────────────────────────────────────────── */
+.footer {
+    text-align: center;
+    padding: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--clr-text-muted);
+    border-top: 1px solid var(--clr-border);
+}
+
+/* ──────────────────────────────────────────────
+   Scrollbar (subtle, dark-themed)
+   ────────────────────────────────────────────── */
+.alert-feed::-webkit-scrollbar {
+    width: 6px;
+}
+.alert-feed::-webkit-scrollbar-track {
+    background: transparent;
+}
+.alert-feed::-webkit-scrollbar-thumb {
+    background: var(--clr-border);
+    border-radius: 3px;
+}

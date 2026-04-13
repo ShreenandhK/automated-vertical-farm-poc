@@ -1,0 +1,68 @@
+# ============================================================
+# docker-compose.yml — Orchestration for Plant Health Monitor
+#
+# Think of this file as a "recipe card" that tells Docker:
+#   1. WHAT to build (the Dockerfile in this directory)
+#   2. HOW to configure it (ports, env vars, volumes)
+#   3. WHERE to persist data (volume mounts)
+#
+# Why docker-compose instead of a raw `docker run` command?
+# A single `docker compose up` replaces a long, error-prone
+# command with flags for ports, volumes, env files, etc.
+# It's also the foundation for adding more services later
+# (e.g., a dedicated database container, Nginx reverse proxy).
+# ============================================================
+
+services:
+  plant-server:
+    # --- Build Configuration ---
+    # build: . tells Docker to look for a Dockerfile in the
+    # current directory (the project root) and build from it.
+    build: .
+
+    # --- Port Mapping ---
+    # Format: "HOST_PORT:CONTAINER_PORT"
+    # This makes the container's port 8000 accessible on your
+    # machine's port 8000. Visit http://localhost:8000 to reach
+    # the dashboard, just like when running locally.
+    ports:
+      - "8000:8000"
+
+    # --- Environment Variables ---
+    # Instead of passing secrets one-by-one with `environment:`,
+    # we point to the .env file. Docker Compose reads it and
+    # injects ALL variables into the container's environment.
+    # The .env file itself is NOT copied into the image (it's
+    # in .dockerignore), so secrets stay on your host machine.
+    env_file:
+      - .env
+
+    # --- Volume Mounts (Persistent Data) ---
+    # Volumes solve a critical problem: containers are ephemeral.
+    # Without volumes, every `docker compose down` would DELETE
+    # your database history and saved plant images forever.
+    #
+    # Format: "HOST_PATH:CONTAINER_PATH"
+    # These create a live two-way link between a folder on your
+    # machine and a folder inside the container. Data written
+    # by the app inside the container appears on your host, and
+    # survives container restarts, rebuilds, and removals.
+    volumes:
+      # Database persistence — the SQLite .db file lives on
+      # your host machine and is mounted into the container.
+      - ./plant_monitor.db:/app/plant_monitor.db
+
+      # Image persistence — saved plant photos are stored on
+      # your host so the dashboard can serve them across restarts.
+      - ./saved_images:/app/saved_images
+
+      # Model files — mount the models directory so you can swap
+      # .tflite files without rebuilding the entire image.
+      - ./server/models:/app/server/models
+
+    # --- Restart Policy ---
+    # If the server crashes (e.g., unhandled exception), Docker
+    # will automatically restart it. "unless-stopped" means it
+    # keeps restarting until YOU explicitly run `docker compose stop`.
+    # This is important for a monitoring system that should stay up.
+    restart: unless-stopped

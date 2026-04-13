@@ -1,0 +1,25 @@
+# Environments
+.venv/
+.env
+
+# Databases
+*.db
+plant_monitor.db
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# IDEs
+.idea/
+.vscode/
+
+# Datasets and local image testing
+saved_images/
+temp_dataset.zip
+temp_extracted/
+simulator/test_plant.jpg
+
+# Claude project memory
+.claude/
+CLAUDE.md

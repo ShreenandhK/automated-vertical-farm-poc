@@ -1,0 +1,36 @@
+# Environments
+.venv/
+.env
+
+# Databases
+*.db
+plant_monitor.db
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# IDEs
+.idea/
+.vscode/
+
+# Datasets and local image testing
+data/
+saved_images/
+temp_dataset.zip
+temp_extracted/
+simulator/
+
+#verson history
+.git/
+.gitignore
+
+#Claude
+.claude
+CLAUDE.md
+
+#IoT Device firmware
+firmware/
+
+# Test scripts
+tests/
